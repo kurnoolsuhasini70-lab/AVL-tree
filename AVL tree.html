@@ -1,0 +1,655 @@
+If you mean **code for an AVL Tree visualizer** using HTML, CSS, and JavaScript, here’s a complete single-file version you can run directly in a browser:
+
+```
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AVL Tree Visualizer</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f7fb;
+      color: #222;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2563eb;
+      margin: 25px 0;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 25px;
+    }
+
+    input {
+      padding: 10px;
+      width: 180px;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      background: #2563eb;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .tree-container {
+      width: 95%;
+      min-height: 500px;
+      margin: auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      overflow: auto;
+      padding: 30px;
+    }
+
+    svg {
+      display: block;
+      margin: auto;
+      min-width: 700px;
+    }
+
+    .node {
+      fill: #2563eb;
+      stroke: #1e40af;
+      stroke-width: 2;
+    }
+
+    .node-text {
+      fill: white;
+      font-size: 16px;
+      font-weight: bold;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    .edge {
+      stroke: #555;
+      stroke-width: 2;
+    }
+
+    .message {
+      text-align: center;
+      margin: 15px;
+      font-weight: bold;
+      color: #16a34a;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>AVL Tree Visualizer</h1>
+
+  <div class="controls">
+    <input
+      type="number"
+      id="value"
+      placeholder="Enter a number"
+    />
+
+    <button onclick="insertValue()">Insert</button>
+    <button onclick="deleteValue()">Delete</button>
+    <button onclick="clearTree()">Clear</button>
+  </div>
+
+  <div class="message" id="message">
+    Enter a value and click Insert
+  </div>
+
+  <div class="tree-container">
+    <svg id="treeSvg" width="1000" height="600"></svg>
+  </div>
+
+  <script>
+    // -----------------------------
+    // AVL Tree Node
+    // -----------------------------
+
+    class Node {
+      constructor(value) {
+        this.value = value;
+        this.left = null;
+        this.right = null;
+        this.height = 1;
+      }
+    }
+
+    let root = null;
+
+    // -----------------------------
+    // Get Height
+    // -----------------------------
+
+    function height(node) {
+      return node ? node.height : 0;
+    }
+
+    // -----------------------------
+    // Get Balance Factor
+    // -----------------------------
+
+    function getBalance(node) {
+      if (!node) return 0;
+
+      return height(node.left) - height(node.right);
+    }
+
+    // -----------------------------
+    // Update Height
+    // -----------------------------
+
+    function updateHeight(node) {
+      node.height =
+        1 + Math.max(
+          height(node.left),
+          height(node.right)
+        );
+    }
+
+    // -----------------------------
+    // Right Rotation
+    // -----------------------------
+
+    function rightRotate(y) {
+
+      let x = y.left;
+      let T2 = x.right;
+
+      x.right = y;
+      y.left = T2;
+
+      updateHeight(y);
+      updateHeight(x);
+
+      return x;
+    }
+
+    // -----------------------------
+    // Left Rotation
+    // -----------------------------
+
+    function leftRotate(x) {
+
+      let y = x.right;
+      let T2 = y.left;
+
+      y.left = x;
+      x.right = T2;
+
+      updateHeight(x);
+      updateHeight(y);
+
+      return y;
+    }
+
+    // -----------------------------
+    // Insert Node
+    // -----------------------------
+
+    function insert(node, value) {
+
+      // Normal BST insertion
+      if (!node) {
+        return new Node(value);
+      }
+
+      if (value < node.value) {
+        node.left = insert(node.left, value);
+      }
+      else if (value > node.value) {
+        node.right = insert(node.right, value);
+      }
+      else {
+        return node;
+      }
+
+      // Update height
+      updateHeight(node);
+
+      // Balance factor
+      let balance = getBalance(node);
+
+      // LL Case
+      if (balance > 1 && value < node.left.value) {
+        return rightRotate(node);
+      }
+
+      // RR Case
+      if (balance < -1 && value > node.right.value) {
+        return leftRotate(node);
+      }
+
+      // LR Case
+      if (balance > 1 && value > node.left.value) {
+        node.left = leftRotate(node.left);
+        return rightRotate(node);
+      }
+
+      // RL Case
+      if (balance < -1 && value < node.right.value) {
+        node.right = rightRotate(node.right);
+        return leftRotate(node);
+      }
+
+      return node;
+    }
+
+    // -----------------------------
+    // Find Minimum Node
+    // -----------------------------
+
+    function minValueNode(node) {
+
+      let current = node;
+
+      while (current.left !== null) {
+        current = current.left;
+      }
+
+      return current;
+    }
+
+    // -----------------------------
+    // Delete Node
+    // -----------------------------
+
+    function remove(node, value) {
+
+      if (!node) {
+        return node;
+      }
+
+      if (value < node.value) {
+        node.left = remove(node.left, value);
+      }
+      else if (value > node.value) {
+        node.right = remove(node.right, value);
+      }
+      else {
+
+        // One child or no child
+        if (!node.left || !node.right) {
+
+          let child = node.left
+            ? node.left
+            : node.right;
+
+          if (!child) {
+            node = null;
+          }
+          else {
+            node = child;
+          }
+        }
+
+        // Two children
+        else {
+
+          let successor =
+            minValueNode(node.right);
+
+          node.value = successor.value;
+
+          node.right =
+            remove(node.right, successor.value);
+        }
+      }
+
+      if (!node) {
+        return node;
+      }
+
+      updateHeight(node);
+
+      let balance = getBalance(node);
+
+      // LL
+      if (balance > 1 &&
+          getBalance(node.left) >= 0) {
+
+        return rightRotate(node);
+      }
+
+      // LR
+      if (balance > 1 &&
+          getBalance(node.left) < 0) {
+
+        node.left =
+          leftRotate(node.left);
+
+        return rightRotate(node);
+      }
+
+      // RR
+      if (balance < -1 &&
+          getBalance(node.right) <= 0) {
+
+        return leftRotate(node);
+      }
+
+      // RL
+      if (balance < -1 &&
+          getBalance(node.right) > 0) {
+
+        node.right =
+          rightRotate(node.right);
+
+        return leftRotate(node);
+      }
+
+      return node;
+    }
+
+    // -----------------------------
+    // Insert Button
+    // -----------------------------
+
+    function insertValue() {
+
+      const input =
+        document.getElementById("value");
+
+      const value =
+        Number(input.value);
+
+      if (input.value === "") {
+        showMessage("Please enter a number", "red");
+        return;
+      }
+
+      root = insert(root, value);
+
+      showMessage(
+        "Inserted " + value,
+        "#16a34a"
+      );
+
+      input.value = "";
+
+      drawTree();
+    }
+
+    // -----------------------------
+    // Delete Button
+    // -----------------------------
+
+    function deleteValue() {
+
+      const input =
+        document.getElementById("value");
+
+      const value =
+        Number(input.value);
+
+      if (input.value === "") {
+        showMessage("Please enter a number", "red");
+        return;
+      }
+
+      root = remove(root, value);
+
+      showMessage(
+        "Deleted " + value,
+        "#dc2626"
+      );
+
+      input.value = "";
+
+      drawTree();
+    }
+
+    // -----------------------------
+    // Clear Tree
+    // -----------------------------
+
+    function clearTree() {
+
+      root = null;
+
+      showMessage(
+        "Tree cleared",
+        "#2563eb"
+      );
+
+      drawTree();
+    }
+
+    // -----------------------------
+    // Display Message
+    // -----------------------------
+
+    function showMessage(text, color) {
+
+      const message =
+        document.getElementById("message");
+
+      message.textContent = text;
+      message.style.color = color;
+    }
+
+    // -----------------------------
+    // Calculate Node Positions
+    // -----------------------------
+
+    function calculatePositions(
+      node,
+      x,
+      y,
+      gap,
+      positions,
+      edges
+    ) {
+
+      if (!node) return;
+
+      if (node.left) {
+
+        edges.push({
+          x1: x,
+          y1: y,
+          x2: x - gap,
+          y2: y + 90
+        });
+
+        calculatePositions(
+          node.left,
+          x - gap,
+          y + 90,
+          gap / 2,
+          positions,
+          edges
+        );
+      }
+
+      if (node.right) {
+
+        edges.push({
+          x1: x,
+          y1: y,
+          x2: x + gap,
+          y2: y + 90
+        });
+
+        calculatePositions(
+          node.right,
+          x + gap,
+          y + 90,
+          gap / 2,
+          positions,
+          edges
+        );
+      }
+
+      positions.push({
+        node: node,
+        x: x,
+        y: y
+      });
+    }
+
+    // -----------------------------
+    // Draw Tree
+    // -----------------------------
+
+    function drawTree() {
+
+      const svg =
+        document.getElementById("treeSvg");
+
+      svg.innerHTML = "";
+
+      if (!root) {
+        return;
+      }
+
+      const positions = [];
+      const edges = [];
+
+      calculatePositions(
+        root,
+        500,
+        60,
+        220,
+        positions,
+        edges
+      );
+
+      // Draw edges first
+      edges.forEach(edge => {
+
+        const line =
+          document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "line"
+          );
+
+        line.setAttribute(
+          "x1",
+          edge.x1
+        );
+
+        line.setAttribute(
+          "y1",
+          edge.y1
+        );
+
+        line.setAttribute(
+          "x2",
+          edge.x2
+        );
+
+        line.setAttribute(
+          "y2",
+          edge.y2
+        );
+
+        line.setAttribute(
+          "class",
+          "edge"
+        );
+
+        svg.appendChild(line);
+      });
+
+      // Draw nodes
+      positions.forEach(pos => {
+
+        const circle =
+          document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "circle"
+          );
+
+        circle.setAttribute(
+          "cx",
+          pos.x
+        );
+
+        circle.setAttribute(
+          "cy",
+          pos.y
+        );
+
+        circle.setAttribute(
+          "r",
+          25
+        );
+
+        circle.setAttribute(
+          "class",
+          "node"
+        );
+
+        svg.appendChild(circle);
+
+        const text =
+          document.createElementNS(
+            "http://www.w3.org/2000/svg",
+            "text"
+          );
+
+        text.setAttribute(
+          "x",
+          pos.x
+        );
+
+        text.setAttribute(
+          "y",
+          pos.y
+        );
+
+        text.setAttribute(
+          "class",
+          "node-text"
+        );
+
+        text.textContent =
+          pos.node.value;
+
+        svg.appendChild(text);
+      });
+    }
+
+  </script>
+
+</body>
+</html>
+```
+
+ ### Features
+
+ - Insert nodes
+- Delete nodes
+- Automatic AVL balancing
+- LL, RR, LR and RL rotations
+- Visual tree representation
+- Clear the entire tree
+- Pure **HTML + CSS + JavaScript**
+- No external libraries required
+
+ Save it as **`index.html`** and open it in your browser.
